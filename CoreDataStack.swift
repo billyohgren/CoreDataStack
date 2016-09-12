@@ -16,8 +16,10 @@ class CoreDataStack {
     private var privateObjectContext: NSManagedObjectContext?
     private var mainObjectContext: NSManagedObjectContext?
     private var initBlock: CoreDataStackInitCallback
-
-    let managedObjectContext: NSManagedObjectContext? = nil
+    
+    var managedObjectContext: NSManagedObjectContext? {
+        return mainObjectContext
+    }
     
     init(callbackBlock: @escaping CoreDataStackInitCallback, resourceName: String, storeName: String?) {
         
@@ -36,10 +38,10 @@ class CoreDataStack {
         guard
             let privateObjectContext = privateObjectContext,
             let mainObjectContext = mainObjectContext
-        else
-            { return }
+            else
+        { return }
         
-        let contextsHasChanges = privateObjectContext.hasChanges && mainObjectContext.hasChanges
+        let contextsHasChanges = privateObjectContext.hasChanges || mainObjectContext.hasChanges
         
         if !contextsHasChanges {
             return
@@ -56,12 +58,12 @@ class CoreDataStack {
                 do {
                     try privateObjectContext.save()
                 } catch {
-                  print("Failed to save private object context")
+                    print("Failed to save private object context")
                 }
             }
         }
     }
- 
+    
     // MARK: - Private
     
     private func initializeCoreData(resourceName: String, storeName: String) {
@@ -73,10 +75,10 @@ class CoreDataStack {
         guard
             let modelURL = Bundle.main.url(forResource: resourceName, withExtension: "momd"),
             let objectModel = NSManagedObjectModel(contentsOf: modelURL)
-        else
-            { return }
+            else
+        { return }
         
-
+        
         let coordinator = NSPersistentStoreCoordinator(managedObjectModel: objectModel)
         mainObjectContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
         privateObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
@@ -91,7 +93,7 @@ class CoreDataStack {
                 NSMigratePersistentStoresAutomaticallyOption: true,
                 NSInferMappingModelAutomaticallyOption: true,
                 NSSQLitePragmasOption: ["journal_mode": "DELETE"]
-            ] as [String : Any]
+                ] as [String : Any]
             
             let fileManager = FileManager.default
             let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).last
